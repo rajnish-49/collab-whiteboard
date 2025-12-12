@@ -13,7 +13,7 @@ model User {
   email    String
   password String
   name     String
-  photo    String
+  photo    String?
 
   rooms    Room[]     // rooms the user is admin of
   chats    Chat[]     // messages sent by this user
