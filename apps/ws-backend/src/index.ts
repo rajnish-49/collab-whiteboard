@@ -1,12 +1,12 @@
 import { WebSocketServer } from "ws";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { JWT_SECRET } from "@repo/backend-common/config";
+import { JWT_SECRET } from "@repo/backend-common";
 
 // object will contain all the standard JWT fields (iat, exp, etc.) plus my own (userId, username)
 interface DecodedToken extends JwtPayload {
-    userId: string;
-    username?: string;
-  }
+  userId: string;
+  username?: string;
+}
 
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -21,14 +21,13 @@ wss.on("connection", function connection(ws, request) {
   }
 
   const queryString = url.includes("?") ? url.split("?")[1] : "";
-  const queryParams = new URLSearchParams(queryString);  //aps keys to values, like this:
+  const queryParams = new URLSearchParams(queryString); //aps keys to values, like this:
 
   //user  → "rajnish"
   // token → "abc123xyz"
 
-// "https://example.com/page?user=rajnish&age=22";
-// Output: "user=rajnish&age=22"
-
+  // "https://example.com/page?user=rajnish&age=22";
+  // Output: "user=rajnish&age=22"
 
   const token = queryParams.get("token");
   const user = queryParams.get("user");
@@ -46,7 +45,7 @@ wss.on("connection", function connection(ws, request) {
       ws.close(1008, "Invalid token payload");
       return;
     }
-  
+
     console.log(" Authenticated user:", decoded.userId);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -54,6 +53,4 @@ wss.on("connection", function connection(ws, request) {
     ws.close(1008, "Invalid or expired token");
     return;
   }
-
-
 });
