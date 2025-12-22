@@ -11,8 +11,14 @@ export function middleware(req: Request, res: Response, next: NextFunction) {
 
   const token = authHeader.split(" ")[1];
 
+  if (!token) {
+    return res.status(401).json({ error: "Authorization token missing" });
+  }
+
   try {
-    const decoded = jwt.verify(token, JWT_SECRET!) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET as string) as unknown as {
+      userId: string;
+    };
     req.userId = decoded.userId;
     next();
   } catch {
