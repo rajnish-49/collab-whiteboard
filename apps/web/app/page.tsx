@@ -1,98 +1,134 @@
-import Image, { type ImageProps } from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { isAuthenticated, getUser, clearAuth } from "@/lib/authStorage";
 import styles from "./page.module.css";
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
-
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
-
-  return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
-
 export default function Home() {
+  const router = useRouter();
+  const [roomId, setRoomId] = useState<string>("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    const auth = isAuthenticated();
+    setAuthenticated(auth);
+    if (auth) {
+      const userData = getUser();
+      setUser(userData);
+    }
+  }, []);
+
+  function handleLogout() {
+    clearAuth();
+    setAuthenticated(false);
+    setUser(null);
+  }
+
+  if (!authenticated) {
+    return (
+      <div className={styles.page}>
+        <div style={{ textAlign: "center", padding: "2rem" }}>
+          <h1 style={{ marginBottom: "2rem" }}>Welcome to Collaborative Whiteboard</h1>
+          <p style={{ marginBottom: "2rem" }}>Please login or sign up to continue</p>
+          <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+            <a
+              href="/login"
+              style={{
+                padding: "0.75rem 1.5rem",
+                background: "#0070f3",
+                color: "white",
+                textDecoration: "none",
+                borderRadius: "4px",
+              }}
+            >
+              Login
+            </a>
+            <a
+              href="/signup"
+              style={{
+                padding: "0.75rem 1.5rem",
+                background: "#333",
+                color: "white",
+                textDecoration: "none",
+                borderRadius: "4px",
+              }}
+            >
+              Sign Up
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
+      <div style={{ padding: "1rem", borderBottom: "1px solid #ccc", marginBottom: "2rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <p style={{ margin: 0, fontWeight: "bold" }}>Welcome, {user?.name}!</p>
+            <p style={{ margin: 0, fontSize: "0.9rem", color: "#666" }}>{user?.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "0.5rem 1rem",
+              background: "#dc3545",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.com/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-          Read our docs
-        </a>
+            Logout
+          </button>
+        </div>
       </div>
-    </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+
+      <div style={{ maxWidth: "500px", margin: "0 auto", padding: "1rem" }}>
+        <h2 style={{ marginBottom: "1.5rem" }}>Join a Room</h2>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+          <input
+            type="text"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+            placeholder="Enter room slug"
+            aria-label="Room ID"
+            style={{
+              flex: 1,
+              padding: "0.75rem",
+              fontSize: "1rem",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && roomId.trim()) {
+                router.push(`/room/${roomId.trim()}`);
+              }
+            }}
           />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.com?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.com →
-        </a>
-      </footer>
+          <button
+            onClick={() => {
+              if (roomId.trim()) {
+                router.push(`/room/${roomId.trim()}`);
+              }
+            }}
+            disabled={!roomId.trim()}
+            style={{
+              padding: "0.75rem 1.5rem",
+              background: roomId.trim() ? "#0070f3" : "#ccc",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: roomId.trim() ? "pointer" : "not-allowed",
+            }}
+          >
+            Join Room
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -154,39 +154,6 @@ app.post("/room", middleware, async (req, res) => {
   }
 });
 
-app.get("/room/:slug", async (req, res) => {
-  const { slug } = req.params;
-
-  try {
-    const room = await prismaclient.room.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        slug: true,
-        createdAt: true,
-        admin: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
-
-    if (!room) {
-      return res.status(404).json({ message: "Room not found" });
-    }
-
-    return res.status(200).json({
-      room,
-    });
-} catch (err) {
-    console.error("Get room error:", err);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
 app.listen(3000, () => {
   console.log("HTTP server is running on port 3000");
 });
