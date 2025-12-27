@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, getUser, clearAuth } from "@/lib/authStorage";
+import { isAuthenticated, getUser, clearAuth, getToken } from "@/lib/authStorage";
+import { createRoom } from "@/lib/api/room";
 import styles from "./page.module.css";
 
 export default function Home() {
   const router = useRouter();
   const [roomId, setRoomId] = useState<string>("");
+  const [newRoomSlug, setNewRoomSlug] = useState<string>("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
@@ -24,6 +28,28 @@ export default function Home() {
     clearAuth();
     setAuthenticated(false);
     setUser(null);
+  }
+
+  async function handleCreateRoom() {
+    if (!newRoomSlug.trim()) return;
+
+    const token = getToken();
+    if (!token) {
+      setCreateError("Not authenticated");
+      return;
+    }
+
+    setCreating(true);
+    setCreateError(null);
+
+    try {
+      const room = await createRoom(newRoomSlug.trim(), token);
+      router.push(`/room/${room.slug}`);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Failed to create room");
+    } finally {
+      setCreating(false);
+    }
   }
 
   if (!authenticated) {
@@ -88,7 +114,49 @@ export default function Home() {
       </div>
 
       <div style={{ maxWidth: "500px", margin: "0 auto", padding: "1rem" }}>
-        <h2 style={{ marginBottom: "1.5rem" }}>Join a Room</h2>
+        <h2 style={{ marginBottom: "1rem" }}>Create a Room</h2>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+          <input
+            type="text"
+            value={newRoomSlug}
+            onChange={(e) => setNewRoomSlug(e.target.value)}
+            placeholder="Enter new room slug (e.g., my-room)"
+            aria-label="New Room Slug"
+            style={{
+              flex: 1,
+              padding: "0.75rem",
+              fontSize: "1rem",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newRoomSlug.trim()) {
+                handleCreateRoom();
+              }
+            }}
+          />
+          <button
+            onClick={handleCreateRoom}
+            disabled={!newRoomSlug.trim() || creating}
+            style={{
+              padding: "0.75rem 1.5rem",
+              background: newRoomSlug.trim() && !creating ? "#28a745" : "#ccc",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: newRoomSlug.trim() && !creating ? "pointer" : "not-allowed",
+            }}
+          >
+            {creating ? "Creating..." : "Create Room"}
+          </button>
+        </div>
+        {createError && (
+          <p style={{ color: "red", fontSize: "0.9rem", margin: "0.5rem 0" }}>{createError}</p>
+        )}
+
+        <hr style={{ margin: "2rem 0", border: "none", borderTop: "1px solid #ccc" }} />
+
+        <h2 style={{ marginBottom: "1rem" }}>Join a Room</h2>
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
           <input
             type="text"

@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
 
 
 export interface Room {
@@ -45,12 +45,15 @@ export async function createRoom(
     body: JSON.stringify({ slug }),
   });
 
-  if (res.status === 409) {
-    throw new Error("Room already exists");
-  }
-
   if (!res.ok) {
-    throw new Error("Failed to create room");
+    const error = await res.json().catch(() => null);
+    if (res.status === 409) {
+      throw new Error("Room already exists");
+    }
+    if (res.status === 401) {
+      throw new Error("Not authenticated - please login again");
+    }
+    throw new Error(error?.message ?? "Failed to create room");
   }
 
   const data: GetRoomResponse = await res.json();

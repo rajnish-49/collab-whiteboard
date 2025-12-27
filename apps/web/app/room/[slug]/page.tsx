@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getRoom, type Room } from "@/lib/api/room";
 import { isAuthenticated } from "@/lib/authStorage";
+import Whiteboard from "@/components/Whiteboard";
 
 export default function RoomPage() {
   const params = useParams();
@@ -15,13 +16,11 @@ export default function RoomPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check authentication
     if (!isAuthenticated()) {
       router.push("/");
       return;
     }
 
-    // Fetch room data
     async function fetchRoom() {
       try {
         setLoading(true);
@@ -42,7 +41,7 @@ export default function RoomPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
+      <div className="p-8 text-center">
         <p>Loading room...</p>
       </div>
     );
@@ -50,34 +49,35 @@ export default function RoomPage() {
 
   if (error || !room) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <p style={{ color: "red" }}>{error || "Room not found"}</p>
-        <button onClick={() => router.push("/")}>Go Back</button>
+      <div className="p-8 text-center">
+        <p className="text-red-500 mb-4">{error || "Room not found"}</p>
+        <button
+          onClick={() => router.push("/")}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <header style={{ padding: "1rem", borderBottom: "1px solid #ccc" }}>
-        <h1>Room: {room.slug}</h1>
-        <p>Admin: {room.admin.name}</p>
+    <div className="h-screen flex flex-col">
+      <header className="p-4 border-b border-gray-300 flex justify-between items-center">
+        <div>
+          <h1 className="text-xl font-bold">Room: {room.slug}</h1>
+          <p className="text-sm text-gray-600">Admin: {room.admin.name}</p>
+        </div>
+        <button
+          onClick={() => router.push("/")}
+          className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+        >
+          Leave Room
+        </button>
       </header>
 
-      <main style={{ flex: 1, position: "relative" }}>
-        {/* Whiteboard canvas will go here */}
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "2px solid #333",
-            background: "#fff",
-          }}
-        >
-          <p style={{ padding: "2rem", textAlign: "center" }}>
-            Whiteboard canvas coming soon...
-          </p>
-        </div>
+      <main className="flex-1 overflow-hidden">
+        <Whiteboard roomId={slug} />
       </main>
     </div>
   );
