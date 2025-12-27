@@ -42,7 +42,7 @@ function checkUser(token: string): DecodedToken | null {
   }
 }
 
-const wss = new WebSocketServer({ port: 8080 });
+const wss = new WebSocketServer({ port: 4002 });
 
 wss.on("connection", (ws, request) => {
   const url = request.url;
