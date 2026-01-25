@@ -27,6 +27,16 @@ model Room {
   admin     User     @relation(fields: [adminId], references: [id])
 
   chats     Chat[]
+  drawing   DrawingState?
+}
+
+model DrawingState {
+  id        Int      @id @default(autoincrement())
+  roomId    Int      @unique
+  elements  Json     @default("[]")
+  updatedAt DateTime @updatedAt
+
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }
 
 model Chat {

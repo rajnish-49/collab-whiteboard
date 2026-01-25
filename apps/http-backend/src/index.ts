@@ -1,7 +1,15 @@
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+
+const JWT_SECRET = process.env.JWT_SECRET!;
+
 import express from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "@repo/backend-common/config";
 import { middleware } from "./middleware.js";
 import { CreateUserSchema, SigninSchema , CreateRoomSchema } from "@repo/common/types";
 import { prismaclient } from "@repo/db/client";
@@ -10,17 +18,21 @@ import bcrypt from "bcryptjs";
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:4000", "http://localhost:4001"],
+  origin: ["http://localhost:3000", "http://localhost:4000"],
   credentials: true,
 }));
 app.use(express.json());
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 app.post("/signup", async (req, res) => {
   const parsed = CreateUserSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
       message: "Invalid input",
-      errors: parsed.error.format(),
+      errors: parsed.error.issues,
     });
   }
 
@@ -52,7 +64,6 @@ app.post("/signup", async (req, res) => {
       },
     });
 
-    // Generate token for auto-login after signup
     const token = jwt.sign(
       { userId: created.id, email: created.email },
       JWT_SECRET,
@@ -84,7 +95,7 @@ app.post("/signin", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({
       message: "Invalid input",
-      errors: parsed.error.format(),
+      errors: parsed.error.issues,
     });
   }
 
@@ -92,12 +103,10 @@ app.post("/signin", async (req, res) => {
   const normalizedEmail = email.trim().toLowerCase();
 
   try {
-    
     const user = await prismaclient.user.findUnique({
       where: { email: normalizedEmail },
     });
 
-    
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -113,7 +122,6 @@ app.post("/signin", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    
     return res.status(200).json({
       message: "Signed in",
       token,
@@ -135,7 +143,7 @@ app.post("/room", middleware, async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({
       message: "Invalid request ",
-      errors: parsed.error.flatten(),
+      errors: parsed.error.issues,
     });
   }
 
@@ -201,6 +209,71 @@ app.get("/room/:slug", async (req, res) => {
     return res.status(200).json({ room });
   } catch (err) {
     console.error("Get room error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/room/:slug/drawing", async (req, res) => {
+  const { slug } = req.params;
+
+  try {
+    const room = await prismaclient.room.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    const drawing = await prismaclient.drawingState.findUnique({
+      where: { roomId: room.id },
+      select: { elements: true, updatedAt: true },
+    });
+
+    return res.status(200).json({
+      elements: drawing?.elements ?? [],
+      updatedAt: drawing?.updatedAt ?? null,
+    });
+  } catch (err) {
+    console.error("Get drawing error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.put("/room/:slug/drawing", middleware, async (req, res) => {
+  const { slug } = req.params;
+  const { elements } = req.body;
+
+  if (!Array.isArray(elements)) {
+    return res.status(400).json({ message: "Elements must be an array" });
+  }
+
+  try {
+    const room = await prismaclient.room.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    const drawing = await prismaclient.drawingState.upsert({
+      where: { roomId: room.id },
+      create: {
+        roomId: room.id,
+        elements,
+      },
+      update: {
+        elements,
+      },
+      select: { updatedAt: true },
+    });
+
+    return res.status(200).json({ updatedAt: drawing.updatedAt });
+  } catch (err) {
+    console.error("Save drawing error:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 });

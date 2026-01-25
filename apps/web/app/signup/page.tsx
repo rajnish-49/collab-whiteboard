@@ -20,12 +20,8 @@ export default function SignupPage() {
 
     try {
       const result = await signup({ email, password, name });
-
-      // Store token and user
       setToken(result.token);
       setUser(result.user);
-
-      // Redirect to home page
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");
@@ -35,26 +31,13 @@ export default function SignupPage() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "100vh",
-        padding: "1rem",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: "400px" }}>
-        <h1 style={{ marginBottom: "1.5rem", textAlign: "center" }}>
-          Sign Up
-        </h1>
+    <div className="flex justify-center items-center min-h-screen p-4">
+      <div className="w-full max-w-md">
+        <h1 className="mb-6 text-center text-2xl font-bold">Sign Up</h1>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              htmlFor="name"
-              style={{ display: "block", marginBottom: "0.5rem" }}
-            >
+          <div className="mb-4">
+            <label htmlFor="name" className="block mb-2 text-sm font-medium">
               Name
             </label>
             <input
@@ -63,21 +46,12 @@ export default function SignupPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                fontSize: "1rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-              }}
+              className="w-full p-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              htmlFor="email"
-              style={{ display: "block", marginBottom: "0.5rem" }}
-            >
+          <div className="mb-4">
+            <label htmlFor="email" className="block mb-2 text-sm font-medium">
               Email
             </label>
             <input
@@ -86,21 +60,12 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                fontSize: "1rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-              }}
+              className="w-full p-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div style={{ marginBottom: "1.5rem" }}>
-            <label
-              htmlFor="password"
-              style={{ display: "block", marginBottom: "0.5rem" }}
-            >
+          <div className="mb-6">
+            <label htmlFor="password" className="block mb-2 text-sm font-medium">
               Password
             </label>
             <input
@@ -109,26 +74,15 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                fontSize: "1rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-              }}
+              className="w-full p-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Min 8 chars, uppercase, lowercase, and number required
+            </p>
           </div>
 
           {error && (
-            <div
-              style={{
-                marginBottom: "1rem",
-                padding: "0.75rem",
-                background: "#fee",
-                color: "#c33",
-                borderRadius: "4px",
-              }}
-            >
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
               {error}
             </div>
           )}
@@ -136,27 +90,19 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              fontSize: "1rem",
-              background: loading ? "#ccc" : "#0070f3",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
+            className={`w-full p-3 text-base text-white rounded transition-colors ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+            }`}
           >
             {loading ? "Signing up..." : "Sign Up"}
           </button>
         </form>
 
-        <p style={{ marginTop: "1rem", textAlign: "center" }}>
+        <p className="mt-4 text-center text-sm">
           Already have an account?{" "}
-          <a
-            href="/login"
-            style={{ color: "#0070f3", textDecoration: "none" }}
-          >
+          <a href="/login" className="text-blue-500 hover:underline">
             Login
           </a>
         </p>
@@ -164,4 +110,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

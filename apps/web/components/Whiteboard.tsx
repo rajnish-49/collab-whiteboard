@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useWebSocket, type WebSocketMessage } from "@/lib/useWebSocket";
+import { getDrawing } from "@/lib/api/room";
 
 type Tool = "select" | "pen" | "rectangle" | "circle" | "line" | "text" | "eraser";
 
@@ -70,7 +71,33 @@ export default function Whiteboard({ roomId, onElementsChange }: WhiteboardProps
   const [elements, setElements] = useState<DrawElement[]>([]);
   const [history, setHistory] = useState<DrawElement[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const isRemoteUpdateRef = useRef(false);
+  const initialLoadRef = useRef(false);
+
+  useEffect(() => {
+    if (initialLoadRef.current) return;
+    initialLoadRef.current = true;
+
+    async function loadDrawing() {
+      try {
+        const data = await getDrawing(roomId);
+        if (data.elements && Array.isArray(data.elements) && data.elements.length > 0) {
+          const loadedElements = data.elements as DrawElement[];
+          isRemoteUpdateRef.current = true;
+          setElements(loadedElements);
+          setHistory([loadedElements]);
+          setHistoryIndex(0);
+        }
+      } catch (err) {
+        console.error("Failed to load drawing:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadDrawing();
+  }, [roomId]);
 
   const handleWebSocketMessage = useCallback((message: WebSocketMessage) => {
     if (message.type === "draw" && message.payload?.elements) {
@@ -450,6 +477,14 @@ export default function Whiteboard({ roomId, onElementsChange }: WhiteboardProps
         : "bg-white text-black border-gray-300 hover:bg-gray-100"
     }`;
 
+  if (isLoading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <p className="text-gray-500">Loading drawing...</p>
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className="w-full h-full flex flex-col">
       <div className="flex gap-2 p-2 bg-gray-100 border-b border-gray-300 flex-wrap items-center">
@@ -573,6 +608,7 @@ export default function Whiteboard({ roomId, onElementsChange }: WhiteboardProps
         />
 
         {textInput && (
+          
           <input
             type="text"
             value={textValue}
@@ -584,7 +620,7 @@ export default function Whiteboard({ roomId, onElementsChange }: WhiteboardProps
             }}
             autoFocus
             className="absolute text-xl border border-blue-500 px-1 py-0.5 outline-none bg-white min-w-[100px]"
-            style={{ left: textInput.x, top: textInput.y - 20 }}
+            style={{ left: `${textInput.x}px`, top: `${textInput.y - 20}px` }}
             placeholder="Type text..."
             aria-label="Text input"
           />

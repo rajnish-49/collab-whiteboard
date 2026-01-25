@@ -59,3 +59,18 @@ export async function createRoom(
   const data: GetRoomResponse = await res.json();
   return data.room;
 }
+
+export interface DrawingState {
+  elements: unknown[];
+  updatedAt: string | null;
+}
+
+export async function getDrawing(slug: string): Promise<DrawingState> {
+  const res = await fetch(`${API_BASE_URL}/room/${slug}/drawing`);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch drawing");
+  }
+
+  return res.json();
+}

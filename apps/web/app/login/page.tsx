@@ -19,12 +19,8 @@ export default function LoginPage() {
 
     try {
       const result = await signin({ email, password });
-      
-      // Store token and user
       setToken(result.token);
       setUser(result.user);
-
-      // Redirect to home page
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -34,24 +30,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "100vh",
-        padding: "1rem",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: "400px" }}>
-        <h1 style={{ marginBottom: "1.5rem", textAlign: "center" }}>Login</h1>
+    <div className="flex justify-center items-center min-h-screen p-4">
+      <div className="w-full max-w-md">
+        <h1 className="mb-6 text-center text-2xl font-bold">Login</h1>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "1rem" }}>
-            <label
-              htmlFor="email"
-              style={{ display: "block", marginBottom: "0.5rem" }}
-            >
+          <div className="mb-4">
+            <label htmlFor="email" className="block mb-2 text-sm font-medium">
               Email
             </label>
             <input
@@ -60,21 +45,12 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                fontSize: "1rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-              }}
+              className="w-full p-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div style={{ marginBottom: "1.5rem" }}>
-            <label
-              htmlFor="password"
-              style={{ display: "block", marginBottom: "0.5rem" }}
-            >
+          <div className="mb-6">
+            <label htmlFor="password" className="block mb-2 text-sm font-medium">
               Password
             </label>
             <input
@@ -83,26 +59,12 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{
-                width: "100%",
-                padding: "0.5rem",
-                fontSize: "1rem",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-              }}
+              className="w-full p-2 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {error && (
-            <div
-              style={{
-                marginBottom: "1rem",
-                padding: "0.75rem",
-                background: "#fee",
-                color: "#c33",
-                borderRadius: "4px",
-              }}
-            >
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
               {error}
             </div>
           )}
@@ -110,27 +72,19 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              fontSize: "1rem",
-              background: loading ? "#ccc" : "#0070f3",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
+            className={`w-full p-3 text-base text-white rounded transition-colors ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+            }`}
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        <p style={{ marginTop: "1rem", textAlign: "center" }}>
-          Don't have an account?{" "}
-          <a
-            href="/signup"
-            style={{ color: "#0070f3", textDecoration: "none" }}
-          >
+        <p className="mt-4 text-center text-sm">
+          Don&apos;t have an account?{" "}
+          <a href="/signup" className="text-blue-500 hover:underline">
             Sign up
           </a>
         </p>
@@ -138,4 +92,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

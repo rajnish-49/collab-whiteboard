@@ -1,6 +1,4 @@
-// @ts-ignore - Prisma client is CommonJS
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
+import { PrismaClient } from "@prisma/client";
 
 const prismaclient = new PrismaClient();
 

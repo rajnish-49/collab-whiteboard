@@ -1,6 +1,15 @@
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+
+const JWT_SECRET = process.env.JWT_SECRET!;
+
 import { WebSocketServer, WebSocket } from "ws";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { JWT_SECRET } from "@repo/backend-common";
+import { prismaclient, Prisma } from "@repo/db/client";
 
 
 interface DecodedToken extends JwtPayload {
@@ -14,19 +23,55 @@ interface UserConnection {
   rooms: Set<string>;
 }
 
+interface DrawPayload {
+  elements: unknown[];
+}
+
 type IncomingMessage =
   | { type: "join-room"; roomId: string }
   | { type: "leave-room"; roomId: string }
-  | { type: "draw"; roomId: string; payload: any };
+  | { type: "draw"; roomId: string; payload: DrawPayload };
 
 
 const connections = new Map<WebSocket, UserConnection>();
 const rooms = new Map<string, Set<WebSocket>>();
+const saveTimers = new Map<string, NodeJS.Timeout>();
+
+async function persistDrawing(roomSlug: string, elements: Prisma.InputJsonValue) {
+  try {
+    const room = await prismaclient.room.findUnique({
+      where: { slug: roomSlug },
+      select: { id: true },
+    });
+
+    if (!room) return;
+
+    await prismaclient.drawingState.upsert({
+      where: { roomId: room.id },
+      create: { roomId: room.id, elements },
+      update: { elements },
+    });
+  } catch (err) {
+    console.error("Failed to persist drawing:", err);
+  }
+}
+
+function debouncedSave(roomSlug: string, elements: Prisma.InputJsonValue) {
+  const existing = saveTimers.get(roomSlug);
+  if (existing) clearTimeout(existing);
+
+  const timer = setTimeout(() => {
+    persistDrawing(roomSlug, elements);
+    saveTimers.delete(roomSlug);
+  }, 1000);
+
+  saveTimers.set(roomSlug, timer);
+}
 
 
 function checkUser(token: string): DecodedToken | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET as string);
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     if (
       typeof decoded !== "object" ||
@@ -76,8 +121,6 @@ wss.on("connection", (ws, request) => {
 
   console.log("Connected:", conn.userId);
 
-  // message 
-
   ws.on("message", (raw) => {
     const connection = connections.get(ws);
     if (!connection) return;
@@ -90,8 +133,6 @@ wss.on("connection", (ws, request) => {
       ws.send(JSON.stringify({ type: "error", message: "Invalid JSON" }));
       return;
     }
-
-    // join
 
     if (message.type === "join-room") {
       const { roomId } = message;
@@ -106,7 +147,6 @@ wss.on("connection", (ws, request) => {
       rooms.get(roomId)!.add(ws);
       connection.rooms.add(roomId);
 
-      // notify others
       for (const member of rooms.get(roomId)!) {
         if (member !== ws) {
           member.send(
@@ -175,6 +215,10 @@ wss.on("connection", (ws, request) => {
             })
           );
         }
+      }
+
+      if (payload.elements) {
+        debouncedSave(roomId, payload.elements as Prisma.InputJsonValue);
       }
     }
   });
