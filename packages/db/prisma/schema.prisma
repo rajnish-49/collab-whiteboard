@@ -14,8 +14,8 @@ model User {
   name     String
   photo    String?
 
-  rooms    Room[]     // rooms the user is admin of
-  chats    Chat[]     // messages sent by this user
+  rooms    Room[]     
+  chats    Chat[]     
 }
 
 model Room {

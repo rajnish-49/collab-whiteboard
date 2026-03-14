@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { getJwtSecret } from "./config.js";
 
 export function middleware(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -15,7 +16,7 @@ export function middleware(req: Request, res: Response, next: NextFunction) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as unknown as {
+    const decoded = jwt.verify(token, getJwtSecret()) as unknown as {
       userId: string;
     };
     req.userId = decoded.userId;

@@ -1,26 +1,30 @@
 import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
+import { getJwtSecret } from "./config.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: new URL("../../../.env", import.meta.url).pathname });
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = getJwtSecret();
 
 import express from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import { middleware } from "./middleware.js";
-import { CreateUserSchema, SigninSchema , CreateRoomSchema } from "@repo/common/types";
-import { prismaclient } from "@repo/db/client";
+import {
+  CreateUserSchema,
+  SigninSchema,
+  CreateRoomSchema,
+} from "@repo/common/types";
+import { prismaclient } from "@repo/db";
 import bcrypt from "bcryptjs";
 
 const app = express();
 
-app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:4000"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:4000"],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
@@ -67,7 +71,7 @@ app.post("/signup", async (req, res) => {
     const token = jwt.sign(
       { userId: created.id, email: created.email },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     return res.status(201).json({
@@ -116,11 +120,9 @@ app.post("/signin", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     return res.status(200).json({
       message: "Signed in",

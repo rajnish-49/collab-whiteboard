@@ -421,27 +421,27 @@ export default function Whiteboard({ roomId, onElementsChange }: WhiteboardProps
     setTool("select");
   };
 
-  const undo = () => {
+  const undo = useCallback(() => {
     if (historyIndex <= 0) return;
     const newIndex = historyIndex - 1;
     setHistoryIndex(newIndex);
     setElements(history[newIndex] || []);
-  };
+  }, [history, historyIndex]);
 
-  const redo = () => {
+  const redo = useCallback(() => {
     if (historyIndex >= history.length - 1) return;
     const newIndex = historyIndex + 1;
     setHistoryIndex(newIndex);
     setElements(history[newIndex] || []);
-  };
+  }, [history, historyIndex]);
 
-  const deleteSelected = () => {
+  const deleteSelected = useCallback(() => {
     if (!selectedId) return;
     const newElements = elements.filter((el) => el.id !== selectedId);
     setElements(newElements);
     saveToHistory(newElements);
     setSelectedId(null);
-  };
+  }, [elements, saveToHistory, selectedId]);
 
   const clearCanvas = () => {
     setElements([]);
@@ -468,7 +468,7 @@ export default function Whiteboard({ roomId, onElementsChange }: WhiteboardProps
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedId, textInput, historyIndex]);
+  }, [deleteSelected, redo, selectedId, textInput, undo]);
 
   const toolButtonClass = (t: Tool) =>
     `p-2 border rounded cursor-pointer ${

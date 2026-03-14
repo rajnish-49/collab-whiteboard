@@ -13,7 +13,6 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
-    "@repo/backend-common": "workspace:*",
     "@repo/common": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/bcrypt": "^5.0.2",
