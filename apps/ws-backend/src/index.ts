@@ -18,6 +18,7 @@ const JWT_SECRET = getJwtSecret();
 import { WebSocketServer, WebSocket } from "ws";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { prismaclient, Prisma } from "@repo/db";
+import { DrawingPayloadSchema, type DrawingPayload } from "@repo/common/types";
 
 
 interface DecodedToken extends JwtPayload {
@@ -31,14 +32,10 @@ interface UserConnection {
   rooms: Set<string>;
 }
 
-interface DrawPayload {
-  elements: unknown[];
-}
-
 type IncomingMessage =
   | { type: "join-room"; roomId: string }
   | { type: "leave-room"; roomId: string }
-  | { type: "draw"; roomId: string; payload: DrawPayload };
+  | { type: "draw"; roomId: string; payload: DrawingPayload };
 
 
 const connections = new Map<WebSocket, UserConnection>();
@@ -47,15 +44,6 @@ const saveTimers = new Map<string, NodeJS.Timeout>();
 
 function sendError(ws: WebSocket, message: string) {
   ws.send(JSON.stringify({ type: "error", message }));
-}
-
-function isDrawPayload(payload: unknown): payload is DrawPayload {
-  return (
-    typeof payload === "object" &&
-    payload !== null &&
-    "elements" in payload &&
-    Array.isArray((payload as DrawPayload).elements)
-  );
 }
 
 async function canAccessRoom(roomSlug: string, userId: string) {
@@ -243,10 +231,12 @@ wss.on("connection", (ws, request) => {
       const { roomId, payload } = message;
 
       if (!connection.rooms.has(roomId)) return;
-      if (!isDrawPayload(payload)) {
+      const parsedPayload = DrawingPayloadSchema.safeParse(payload);
+      if (!parsedPayload.success) {
         sendError(ws, "Invalid draw payload");
         return;
       }
+      const safePayload = parsedPayload.data;
 
       const room = rooms.get(roomId);
       if (!room) return;
@@ -258,13 +248,13 @@ wss.on("connection", (ws, request) => {
               type: "draw",
               roomId,
               userId: connection.userId,
-              payload,
+              payload: safePayload,
             })
           );
         }
       }
 
-      debouncedSave(roomId, payload.elements as Prisma.InputJsonValue);
+      debouncedSave(roomId, safePayload.elements as Prisma.InputJsonValue);
     }
   });
 

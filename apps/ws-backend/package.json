@@ -18,6 +18,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
+    "@repo/common": "workspace:*",
     "@repo/db": "workspace:*",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/ws": "^8.18.1",

@@ -9,6 +9,69 @@ const passwordSchema = z
     "Password must include uppercase, lowercase, and a number",
   )
 
+const finiteNumberSchema = z.number().finite();
+
+const pointSchema = z.object({
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+});
+
+const baseDrawingElementSchema = z.object({
+  id: z.string().min(1).max(100),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Color must be a hex value"),
+  strokeWidth: z.number().finite().min(1).max(50),
+});
+
+const pathElementSchema = baseDrawingElementSchema.extend({
+  type: z.literal("path"),
+  points: z.array(pointSchema).min(1).max(5000),
+});
+
+const rectangleElementSchema = baseDrawingElementSchema.extend({
+  type: z.literal("rectangle"),
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+  width: finiteNumberSchema,
+  height: finiteNumberSchema,
+});
+
+const circleElementSchema = baseDrawingElementSchema.extend({
+  type: z.literal("circle"),
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+  radius: z.number().finite().min(0).max(10000),
+});
+
+const lineElementSchema = baseDrawingElementSchema.extend({
+  type: z.literal("line"),
+  x1: finiteNumberSchema,
+  y1: finiteNumberSchema,
+  x2: finiteNumberSchema,
+  y2: finiteNumberSchema,
+});
+
+const textElementSchema = baseDrawingElementSchema.extend({
+  type: z.literal("text"),
+  x: finiteNumberSchema,
+  y: finiteNumberSchema,
+  content: z.string().max(1000),
+  fontSize: z.number().finite().min(1).max(200),
+});
+
+export const DrawingElementSchema = z.discriminatedUnion("type", [
+  pathElementSchema,
+  rectangleElementSchema,
+  circleElementSchema,
+  lineElementSchema,
+  textElementSchema,
+]);
+
+export const DrawingPayloadSchema = z.object({
+  elements: z.array(DrawingElementSchema).max(10000),
+});
+
+export type DrawingPayload = z.infer<typeof DrawingPayloadSchema>;
+
 export const CreateUserSchema = z.object({
   email: z.email("Invalid email address"),
   password: passwordSchema,

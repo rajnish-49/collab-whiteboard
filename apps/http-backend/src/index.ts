@@ -14,6 +14,7 @@ import {
   CreateUserSchema,
   SigninSchema,
   CreateRoomSchema,
+  DrawingPayloadSchema,
 } from "@repo/common/types";
 import { prismaclient } from "@repo/db";
 import bcrypt from "bcryptjs";
@@ -372,15 +373,21 @@ app.get("/room/:slug/drawing", async (req, res) => {
 
 app.put("/room/:slug/drawing", middleware, async (req, res) => {
   const { slug } = req.params;
-  const { elements } = req.body;
 
   if (!slug) {
     return res.status(400).json({ message: "Room slug is required" });
   }
 
-  if (!Array.isArray(elements)) {
-    return res.status(400).json({ message: "Elements must be an array" });
+  const parsed = DrawingPayloadSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      message: "Invalid drawing payload",
+      errors: parsed.error.issues,
+    });
   }
+
+  const { elements } = parsed.data;
 
   try {
     const room = await findEditableRoom(slug, req.userId);
