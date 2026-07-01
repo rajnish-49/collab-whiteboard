@@ -13,6 +13,12 @@ export interface Room {
   };
 }
 
+export interface RoomMember {
+  id: string;
+  name: string;
+  email: string;
+}
+
 interface GetRoomResponse {
   room: Room;
 }
@@ -58,6 +64,47 @@ export async function createRoom(
 
   const data: GetRoomResponse = await res.json();
   return data.room;
+}
+
+export async function getRoomMembers(
+  slug: string,
+  token: string
+): Promise<RoomMember[]> {
+  const res = await fetch(`${API_BASE_URL}/room/${slug}/members`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch room members");
+  }
+
+  const data: { members: RoomMember[] } = await res.json();
+  return data.members;
+}
+
+export async function addRoomMember(
+  slug: string,
+  email: string,
+  token: string
+): Promise<RoomMember> {
+  const res = await fetch(`${API_BASE_URL}/room/${slug}/members`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.message ?? "Failed to add collaborator");
+  }
+
+  const data: { member: RoomMember } = await res.json();
+  return data.member;
 }
 
 export interface DrawingState {

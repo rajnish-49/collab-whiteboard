@@ -27,3 +27,7 @@ export const CreateRoomSchema = z.object({
     .max(20, "Slug must be less than 20 characters")
     .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
 });
+
+export const AddRoomMemberSchema = z.object({
+  email: z.email("Invalid email address"),
+});

@@ -10,6 +10,7 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import { middleware } from "./middleware.js";
 import {
+  AddRoomMemberSchema,
   CreateUserSchema,
   SigninSchema,
   CreateRoomSchema,
@@ -26,6 +27,27 @@ app.use(
   }),
 );
 app.use(express.json());
+
+async function findEditableRoom(slug: string, userId: string) {
+  const room = await prismaclient.room.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      adminId: true,
+      members: {
+        where: { userId },
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!room) return null;
+
+  return {
+    id: room.id,
+    canEdit: room.adminId === userId || room.members.length > 0,
+  };
+}
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
@@ -215,6 +237,111 @@ app.get("/room/:slug", async (req, res) => {
   }
 });
 
+app.get("/room/:slug/members", middleware, async (req, res) => {
+  const { slug } = req.params;
+
+  try {
+    const room = await prismaclient.room.findUnique({
+      where: { slug },
+      select: {
+        adminId: true,
+        members: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    const canView =
+      room.adminId === req.userId ||
+      room.members.some((member) => member.user.id === req.userId);
+
+    if (!canView) {
+      return res.status(403).json({ message: "Not allowed to view this room" });
+    }
+
+    return res.status(200).json({
+      members: room.members.map((member) => member.user),
+    });
+  } catch (err) {
+    console.error("Get room members error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/room/:slug/members", middleware, async (req, res) => {
+  const { slug } = req.params;
+  const parsed = AddRoomMemberSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      message: "Invalid input",
+      errors: parsed.error.issues,
+    });
+  }
+
+  const collaboratorEmail = parsed.data.email.trim().toLowerCase();
+
+  try {
+    const room = await prismaclient.room.findUnique({
+      where: { slug },
+      select: { id: true, adminId: true },
+    });
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    if (room.adminId !== req.userId) {
+      return res.status(403).json({ message: "Only the room admin can add collaborators" });
+    }
+
+    const user = await prismaclient.user.findUnique({
+      where: { email: collaboratorEmail },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.id === room.adminId) {
+      return res.status(400).json({ message: "Room admin already has access" });
+    }
+
+    await prismaclient.roomMember.upsert({
+      where: {
+        roomId_userId: {
+          roomId: room.id,
+          userId: user.id,
+        },
+      },
+      create: {
+        roomId: room.id,
+        userId: user.id,
+      },
+      update: {},
+    });
+
+    return res.status(201).json({ member: user });
+  } catch (err) {
+    console.error("Add room member error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 app.get("/room/:slug/drawing", async (req, res) => {
   const { slug } = req.params;
 
@@ -247,21 +374,22 @@ app.put("/room/:slug/drawing", middleware, async (req, res) => {
   const { slug } = req.params;
   const { elements } = req.body;
 
+  if (!slug) {
+    return res.status(400).json({ message: "Room slug is required" });
+  }
+
   if (!Array.isArray(elements)) {
     return res.status(400).json({ message: "Elements must be an array" });
   }
 
   try {
-    const room = await prismaclient.room.findUnique({
-      where: { slug },
-      select: { id: true, adminId: true },
-    });
+    const room = await findEditableRoom(slug, req.userId);
 
     if (!room) {
       return res.status(404).json({ message: "Room not found" });
     }
 
-    if (room.adminId !== req.userId) {
+    if (!room.canEdit) {
       return res.status(403).json({ message: "Not allowed to edit this room" });
     }
 

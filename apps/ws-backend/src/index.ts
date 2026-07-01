@@ -58,13 +58,19 @@ function isDrawPayload(payload: unknown): payload is DrawPayload {
   );
 }
 
-async function roomExists(roomSlug: string) {
+async function canAccessRoom(roomSlug: string, userId: string) {
   const room = await prismaclient.room.findUnique({
     where: { slug: roomSlug },
-    select: { id: true },
+    select: {
+      adminId: true,
+      members: {
+        where: { userId },
+        select: { id: true },
+      },
+    },
   });
 
-  return Boolean(room);
+  return Boolean(room && (room.adminId === userId || room.members.length > 0));
 }
 
 async function persistDrawing(roomSlug: string, elements: Prisma.InputJsonValue) {
@@ -170,8 +176,8 @@ wss.on("connection", (ws, request) => {
       if (connection.rooms.has(roomId)) return;
 
       void (async () => {
-        if (!(await roomExists(roomId))) {
-          sendError(ws, "Room not found");
+        if (!(await canAccessRoom(roomId, connection.userId))) {
+          sendError(ws, "Room not found or access denied");
           return;
         }
 
