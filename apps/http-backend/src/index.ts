@@ -254,11 +254,15 @@ app.put("/room/:slug/drawing", middleware, async (req, res) => {
   try {
     const room = await prismaclient.room.findUnique({
       where: { slug },
-      select: { id: true },
+      select: { id: true, adminId: true },
     });
 
     if (!room) {
       return res.status(404).json({ message: "Room not found" });
+    }
+
+    if (room.adminId !== req.userId) {
+      return res.status(403).json({ message: "Not allowed to edit this room" });
     }
 
     const drawing = await prismaclient.drawingState.upsert({
