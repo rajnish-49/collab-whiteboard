@@ -38,3 +38,5 @@ yarn-error.log*
 *.pem
 
 /generated/prisma
+*.tsbuildinfo
+packages/db/generated/prisma/
